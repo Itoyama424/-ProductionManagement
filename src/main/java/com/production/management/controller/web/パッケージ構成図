@@ -1,0 +1,12 @@
+jp.itoyama.production
+├── controller
+│   ├── web        <-- Thymeleafなどの画面表示用（Phase 1-4）
+│   └── api        <-- リアルタイム更新や外部連携用（Phase 5-6）
+├── service
+│   ├── structure  <-- BOMの展開ロジックなど
+│   ├── inventory  <-- 在庫管理ロジック
+│   └── production <-- 製造実行ロジック
+├── mapper         <-- MyBatisのMapperインターフェース
+├── dto            <-- データ転送用（Childを追放したクリーンなもの） [cite: 2026-03-02]
+├── entity         <-- データベースのテーブルと1対1のオブジェクト
+└── form           <-- 画面入力値のバリデーション用

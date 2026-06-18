@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.production.management.mapper.BomCalcResultMapper">
+   <!-- 一括登録 -->
+   <insert id="bomCalcResInsert">
+       INSERT INTO bom_calc_result
+       (
+           calc_id
+           ,item_id
+           ,top_parent_id
+           ,gross_qty
+           ,available_stock
+           ,net_qty
+           ,created_at
+       )
+       VALUES
+       <foreach collection="bomCalcList" item="bomCalc" separator=",">
+       (
+           #{bomCalc.calcId}
+           ,#{bomCalc.itemId}
+           ,#{bomCalc.topParentId}
+           ,#{bomCalc.grossQty}
+           ,#{bomCalc.availableStock}
+           ,#{bomCalc.netQty}                              
+           ,CURRENT_TIMESTAMP
+       )
+       </foreach>
+   </insert>
+   <select id="getBomCalcResult" resultType="com.production.management.dto.BomViewDto">
+--部品番号
+--部品名
+--単位
+--構成数
+--総必要数
+--在庫数
+--不足数
+--不良
+--保留
+--有効在庫
+   
+	SELECT
+	    itm.item_id AS itemId,								
+	    itm.item_name AS itemName,							
+	    itm.unit AS unit,									
+	    bmm.quantity AS calcQuantity,						
+	    bcr.gross_qty AS calcTotalRequired,					
+	    stm.stock_quantity AS calcStockQty,					
+	    bcr.net_qty AS calcShortageQty,						
+	    stm.defective_quantity AS calcDefectiveQty,			
+	    stm.hold_quantity AS calcHoldQty,					
+	    bcr.available_stock AS calcAvailableQty
+	FROM 
+	    bom_calc_result bcr INNER JOIN bom_master bmm
+	    ON bcr.item_id = bmm.child_id
+	LEFT JOIN stock_master stm 
+	    ON bcr.item_id = stm.item_id
+	LEFT JOIN item_master itm 
+	    ON bcr.item_id = itm.item_id
+	WHERE 
+	    bmm.child_id = #{parentId}
+	    AND bcr.calc_id = #{calcId}
+   </select>
+</mapper>

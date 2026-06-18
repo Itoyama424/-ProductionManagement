@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>製造指示入力 | 生産管理システム</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+</head>
+<body>
+    <div class="main-container">
+        <div class="system-panel">
+            <div class="system-header">
+                ■ 製造指示・部材展開入力
+            </div>
+            
+            <div class="system-body">
+                <form th:action="@{/bom/display}" th:object="${bomSearchForm}" method="get">
+                    
+                    <div class="flex-row">
+                        
+                        <div class="col-id">
+                            <label class="form-label">対象品番（製品・ユニット・部品）</label>
+                            <input type="text" th:field="*{parentId}" id="parentIdInput" class="form-control" placeholder="例：EV-PRO-01" required>
+                            <span class="text-danger" th:if="${#fields.hasErrors('parentId')}" th:errors="*{parentId}"></span>
+                        </div>
+
+                        <div class="col-qty">
+                            <label class="form-label">製造数量</label>
+                            <input type="number" th:field="*{orderQty}" class="form-control" step="1" min="1" required>
+                        </div>
+
+                        <div class="col-date">
+                            <label class="form-label">構成基準日</label>
+                            <input type="date" name="baseDate" class="form-control" th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}">
+                        </div>
+
+                        <div class="col-full">
+                            <button type="submit" name="gross" class="btn-action">
+                                総展開
+                            </button>
+                            <button type="submit" name="net" class="btn-action">
+                                純展開
+                            </button>
+                            <button type="submit" name="gross_map" class="btn-action">
+                                総展開(Map)
+                            </button>
+                            <button type="submit" name="net_map" class="btn-action">
+                                純展開(Map)
+                            </button>    
+                            <button type="submit" name="bomcalc" class="btn-action">
+                                必要量の計算(bom_calc_result)
+                            </button>                                                                               
+                        </div>
+                        
+                    </div>
+                </form>
+            </div>
+        </div>
+		<div th:if="${errorMessage}" class="alert-error" style="background-color: #ffebee; border: 1px solid #c62828; color: #c62828; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+		    <strong style="display: block; margin-bottom: 5px;">【データ不備：循環参照検知】</strong>
+		    <span th:text="${errorMessage}">ここにエラーの内容が表示されます</span>
+		</div>       
+        <div style="margin-top: 15px; text-align: right;">
+            <a th:href="@{/bom/menu}" style="color: #666; text-decoration: none;">← メニューへ戻る</a>
+        </div>
+        
+    </div>
+</body>
+</html>

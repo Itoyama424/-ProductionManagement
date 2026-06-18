@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.production.management.mapper.BomMasterMapper">
+<select id="getRawBomList" resultType="com.production.management.entity.BomMasterEntity">
+  SELECT
+    parent_id AS parentId,
+    child_id  AS itemId,
+    quantity  AS quantity
+  FROM
+    public.bom_master
+</select>
+</mapper>

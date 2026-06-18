@@ -1,0 +1,122 @@
+@charset "UTF-8";
+
+/* --- 0. おまじない（必須） --- */
+/* 要素の幅を計算する時、枠線（border）を含めるようにする設定です */
+* { 
+    box-sizing: border-box; 
+}
+
+/* --- 1. 全体レイアウト --- */
+body { 
+    background-color: #ffffff; 
+    font-family: sans-serif;   
+    color: #333;
+    margin: 0;
+    padding: 20px;
+}
+.main-container { 
+    max-width: 1200px; 
+    margin: 30px auto; /* 中央寄せ */
+}
+
+/* --- 2. 硬派なパネル --- */
+.system-panel { 
+    border: 2px solid #333; 
+    background-color: #f9f9f9; 
+}
+.system-header { 
+    background-color: #333;    
+    color: #fff;               
+    padding: 12px 20px; 
+    font-weight: bold; 
+    font-size: 1.1em;
+    border-bottom: 2px solid #333;
+}
+.system-body { 
+    padding: 25px; 
+}
+
+/* --- 3. フォーム部品（Bootstrapの代わり） --- */
+.form-label { 
+    display: block; /* 改行させる */
+    font-weight: bold; 
+    font-size: 0.95em; 
+    margin-bottom: 8px; /* 入力欄との隙間 */
+    color: #000;
+}
+.form-control {
+    width: 100%; /* 親要素の幅いっぱいに広がる */
+    padding: 8px 10px; /* 入力しやすいように内側に余白 */
+    border: 1px solid #999;
+    font-size: 1em;
+}
+.text-danger { 
+    color: #dc3545; 
+    font-size: 0.85em; 
+    margin-top: 5px; 
+    display: block; 
+}
+
+/* --- 4. 横並びのレイアウト（超重要） --- */
+/* display: flex; を書いた箱の中身は、自動的に横並びになります */
+.flex-row { 
+    display: flex; 
+    gap: 20px; /* 横並びにした要素の隙間 */
+    align-items: flex-end; /* 下のライン（入力欄の底）を揃える */
+    flex-wrap: wrap; /* 画面が狭ければ自動で折り返す */
+}
+
+/* 横並びの割合（flexの数字）を自分で決める */
+.col-id   { flex: 2; min-width: 250px; } /* IDは長いので「2」の割合 */
+.col-qty  { flex: 1; min-width: 100px; } /* 数量は短いので「1」の割合 */
+.col-date { flex: 1; min-width: 150px; } /* 日付も「1」の割合 */
+.col-full { width: 100%; text-align: center; margin-top: 25px; } /* ボタンは単独で1行使う */
+
+/* --- 5. ボタン --- */
+.btn-action { 
+    background-color: #0056b3; 
+    color: white; 
+    border: 1px solid #004085; 
+    padding: 10px 30px; 
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 1em;
+}
+.btn-action:hover { background-color: #004085; }
+
+/* 文字をオレンジ色にする（警告色） */
+.text-warning {
+    color: #ff9800 !important;
+    font-weight: bold;
+}
+
+/* インデント用の基本クラス */
+.level-indent {
+    display: flex;
+    align-items: center; /* ボタンと文字を縦中央に揃える */
+}
+
+/* 展開ボタン（＋）のスタイル */
+.expand-btn {
+    cursor: pointer;
+    background-color: transparent;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 0 5px;
+    margin-right: 5px;
+    font-weight: bold;
+    color: #555;
+}
+.expand-btn:hover {
+    background-color: #eee;
+}
+
+/* 計算イメージに合わせた配色 */
+.blue-text {
+    font-weight: bold;
+    color: blue; /* 設計通りのBlue */
+}
+.red-text {
+    font-weight: bold;
+    color: red; /* 不足数はRed */
+}

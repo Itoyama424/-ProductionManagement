@@ -1,0 +1,562 @@
+ 
+===== C:\pleiades\2023-12\pleiades-2023-12-java-win-64bit-jre_20240218\workspace_margerquest\ProductionManagement\bin\main\mapper\FullBomExpansionMapper.xml ===== 
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.production.management.mapper.FullBomExpansionMapper">
+<select id="getFullBomExpansion" resultType="com.production.management.entity.BomEntity">
+SELECT
+ imm.item_id as itemId,
+ imm.item_name as itemName,
+ bmm.quantity,
+ imm.unit,
+ skm.stock_quantity as stockQuantity,
+ skm.defective_quantity as defectiveQuantity,
+ skm.hold_quantity as holdQuantity
+FROM
+ bom_master bmm INNER JOIN item_master imm 
+ON 
+ bmm.child_id = imm.item_id 
+LEFT JOIN stock_master skm
+ON
+ imm.item_id = skm.item_id
+WHERE
+ bmm.parent_id = #{itemId}
+</select>
+</mapper> 
+===== C:\pleiades\2023-12\pleiades-2023-12-java-win-64bit-jre_20240218\workspace_margerquest\ProductionManagement\bin\main\mapper\ItemMasterMapper.xml ===== 
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.production.management.mapper.ItemMasterMapper">
+<select id="getItemMasterById" resultType="com.production.management.entity.ItemMasterEntity">
+SELECT
+ itemMaster.item_id as itemId,
+ itemMaster.item_name as itemName,
+ itemMaster.item_type as itemType,
+ itemMaster.unit
+FROM
+ item_master itemMaster
+WHERE
+ itemMaster.item_id = #{itemId}
+</select>
+</mapper> 
+===== C:\pleiades\2023-12\pleiades-2023-12-java-win-64bit-jre_20240218\workspace_margerquest\ProductionManagement\src\main\java\com\production\management\ProductionManagementApplication.java ===== 
+package com.production.management;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ProductionManagementApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(ProductionManagementApplication.class, args);
+	}
+
+}
+ 
+===== C:\pleiades\2023-12\pleiades-2023-12-java-win-64bit-jre_20240218\workspace_margerquest\ProductionManagement\src\main\java\com\production\management\controller\web\BomStructureController.java ===== 
+package com.production.management.controller.web;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import com.production.management.dto.BomExpansionResult;
+import com.production.management.form.BomSearchForm;
+import com.production.management.service.structure.BomExpansionService;
+
+@Controller
+@RequestMapping("/bom")
+public class BomStructureController {
+
+  /** BOM展開系サービスクラス */
+  @Autowired
+  private BomExpansionService bomExpansionService;
+
+  /**
+   * 初期表示を行う
+   * 
+   * @param form
+   * @return
+   */
+  @GetMapping("/index")
+  public String index(@ModelAttribute BomSearchForm form) {
+    return "/bom/index";
+  }
+
+  /**
+   * 総展開で対象部品IDから紐づくBOMを展開する
+   * 
+   * @param form
+   * @param result
+   * @param model
+   * @return
+   */
+  @GetMapping(value = "display", params = "gross" )
+  public String calculateGross(@Validated @ModelAttribute BomSearchForm form, BindingResult result,
+      Model model) {
+
+    // 入力チェック
+    if (result.hasErrors()) {
+      return "bom/index";
+
+    }
+
+    BomExpansionResult ExpansionResult =
+        bomExpansionService.calculateRequirements(form.getParentId(), form.getOrderQty(), false);
+
+    model.addAttribute("res", ExpansionResult);
+    
+    return "/bom/bom_display";
+  }
+  
+  /**
+   * 純展開で対象部品IDから紐づくBOMを展開する
+   * 
+   * @param form
+   * @param result
+   * @param model
+   * @return
+   */
+  @GetMapping(value = "display", params = "net" )
+  public String calculateNet(@Validated @ModelAttribute BomSearchForm form, BindingResult result,
+      Model model) {
+
+    // 入力チェック
+    if (result.hasErrors()) {
+      return "bom/index";
+
+    }
+
+    BomExpansionResult ExpansionResult =
+        bomExpansionService.calculateRequirements(form.getParentId(), form.getOrderQty(), true);
+
+    model.addAttribute("res", ExpansionResult);
+    
+    return "/bom/bom_display";
+  }
+}
+ 
+===== C:\pleiades\2023-12\pleiades-2023-12-java-win-64bit-jre_20240218\workspace_margerquest\ProductionManagement\src\main\java\com\production\management\dto\BomExpansionResult.java ===== 
+package com.production.management.dto;
+
+import java.math.BigDecimal;
+import java.util.List;
+import com.production.management.entity.ItemMasterEntity;
+import lombok.Data;
+
+@Data
+public class BomExpansionResult {
+    // 親アイテムの基本情報（名称、ID、単位）
+    private ItemMaster parentItem; 
+    
+    // 画面に渡された製造指示数（生の値）
+    private BigDecimal orderQty; 
+    
+    // 再帰的に展開された子部品のフラットなリスト
+    private List<BomViewDto> bomList; 
+}
+ 
+===== C:\pleiades\2023-12\pleiades-2023-12-java-win-64bit-jre_20240218\workspace_margerquest\ProductionManagement\src\main\java\com\production\management\dto\BomViewDto.java ===== 
+package com.production.management.dto;
+
+import java.math.BigDecimal;
+import lombok.Data;
+
+@Data
+public class BomViewDto {
+  // 基本情報
+  private int level;
+  private String itemId;
+  private String itemName;
+  private String unit;
+
+  // --- 構成数(親1個当り) ---
+  private BigDecimal calcQuantity; 
+  private String quantityDisp; 
+  // --- 総必要数 ---
+  private BigDecimal calcTotalRequired;
+  private String totalRequiredDisp; 
+  // --- 在庫（Stock） ---
+  private BigDecimal calcStockQty;
+  private String stockQtyDisp;
+  //--- 不良（Defective） ---
+  private BigDecimal calcDefectiveQty;
+  private String defectiveQtyDisp; 
+  //--- 保留（Hold） ---
+  private BigDecimal calcHoldQty;
+  private String holdQtyDisp;
+  //--- 有効在庫 ---
+  private BigDecimal calcAvailableQty; 
+  private String availableQtyDisp;  
+ 
+  // --- 不足数 ---
+  private String shortageQtyDisp;
+  private BigDecimal calcShortageQty;
+
+
+}
+ 
+===== C:\pleiades\2023-12\pleiades-2023-12-java-win-64bit-jre_20240218\workspace_margerquest\ProductionManagement\src\main\java\com\production\management\dto\ItemDto.java ===== 
+package com.production.management.dto;
+
+import lombok.Data;
+
+@Data
+public class ItemDto {
+    private String itemId;   // 品番 (EV-PRO-01 等)
+    private String itemName; // 品名
+    private String unit;     // 単位 (台, 個 等)
+}
+ 
+===== C:\pleiades\2023-12\pleiades-2023-12-java-win-64bit-jre_20240218\workspace_margerquest\ProductionManagement\src\main\java\com\production\management\entity\BomEntity.java ===== 
+package com.production.management.entity;
+
+import java.math.BigDecimal;
+import lombok.Data;
+
+@Data
+public class BomEntity {
+  private int level;
+  private String itemId;
+  private String itemName;
+  private String unit;
+  private BigDecimal quantity; // 構成数
+  private BigDecimal stockQuantity; // 在庫数（NULLを許容）
+  private BigDecimal defectiveQuantity; // 不良数（NULLを許容）
+  private BigDecimal holdQuantity; // 保留数（NULLを許容）
+}
+ 
+===== C:\pleiades\2023-12\pleiades-2023-12-java-win-64bit-jre_20240218\workspace_margerquest\ProductionManagement\src\main\java\com\production\management\entity\ItemMaster.java ===== 
+package com.production.management.entity;
+
+import java.io.Serializable;
+
+import lombok.Data;
+
+@Data
+public class ItemMaster implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    /** 品目ID (主キー) */
+    private String itemId;
+
+    /** 品目名称 */
+    private String itemName;
+
+    /** 品目タイプ (1:完成品, 2:アッセンブリ, 3:単体部品・材料 等) */
+    private Integer itemType;
+
+    /** 単位 (台, 個, kg, m 等) */
+    private String unit;
+
+} 
+===== C:\pleiades\2023-12\pleiades-2023-12-java-win-64bit-jre_20240218\workspace_margerquest\ProductionManagement\src\main\java\com\production\management\form\BomSearchForm.java ===== 
+package com.production.management.form;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+import org.springframework.format.annotation.DateTimeFormat;
+
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+
+public class BomSearchForm {
+    @NotBlank(message = "IDは必須です")
+    @Pattern(regexp = "^[A-Z0-9-]+$", message = "英数字のみ入力可能です")
+    private String parentId;
+    @NotNull(message = "生産指示数を入力してください")
+    @Min(value = 1, message = "1個以上で入力してください")
+    private BigDecimal orderQty;
+    @NotNull(message = "基準日を入力してください")
+    @DateTimeFormat(pattern = "yyyy-MM-dd") // HTMLのdate型から変換するために必要
+    private LocalDate baseDate;
+    
+	public String getParentId() {
+		return parentId;
+	}
+	public void setParentId(String parentId) {
+		this.parentId = parentId;
+	}
+	public BigDecimal getOrderQty() {
+		return orderQty;
+	}
+	public void setOrderQty(BigDecimal orderQty) {
+		this.orderQty = orderQty;
+	}
+	public LocalDate getBaseDate() {
+		return baseDate;
+	}
+	public void setBaseDate(LocalDate baseDate) {
+		this.baseDate = baseDate;
+	}
+
+}
+ 
+===== C:\pleiades\2023-12\pleiades-2023-12-java-win-64bit-jre_20240218\workspace_margerquest\ProductionManagement\src\main\java\com\production\management\mapper\FullBomExpansionMapper.java ===== 
+/**
+ * BOM全展開
+ */
+package com.production.management.mapper;
+
+import java.util.List;
+import org.apache.ibatis.annotations.Mapper;
+import com.production.management.entity.BomEntity;
+
+@Mapper
+public interface FullBomExpansionMapper {
+
+	List<BomEntity> getFullBomExpansion(String itemId);
+}
+ 
+===== C:\pleiades\2023-12\pleiades-2023-12-java-win-64bit-jre_20240218\workspace_margerquest\ProductionManagement\src\main\java\com\production\management\mapper\ItemMasterMapper.java ===== 
+package com.production.management.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+
+import com.production.management.entity.ItemMasterEntity;
+
+@Mapper
+public interface ItemMasterMapper {
+	/**
+	 * item_masterからIdをキーに取得する
+	 * @param itemId
+	 * @return ItemMaster
+	 */
+	ItemMaster getItemMasterById(String itemId);
+}
+ 
+===== C:\pleiades\2023-12\pleiades-2023-12-java-win-64bit-jre_20240218\workspace_margerquest\ProductionManagement\src\main\java\com\production\management\service\structure\BomExpansionService.java ===== 
+package com.production.management.service.structure;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.production.management.dto.BomExpansionResult;
+import com.production.management.dto.BomViewDto;
+import com.production.management.entity.BomEntity;
+import com.production.management.entity.ItemMasterEntity;
+import com.production.management.mapper.FullBomExpansionMapper;
+import com.production.management.mapper.ItemMasterMapper;
+
+/**
+ * BOM展開系サービスクラス
+ */
+@Service
+public class BomExpansionService {
+
+  /** 部品マスタマッパー */
+  @Autowired
+  private ItemMasterMapper itemMasterMapper;
+  
+  /** Bom全展開マッパー */
+  @Autowired
+  private FullBomExpansionMapper fullBomExpansionMapper;
+  
+  /** 開始階層 */
+  private static final int START_LEVEL = 1;
+  private static final String EMP_STR = "未設定";
+
+  /**
+   * 必要数計算処理
+   * @param targetId
+   * @param orderQty
+   * @return
+   */
+  public BomExpansionResult calculateRequirements(String targetId, BigDecimal orderQty, boolean isNet) {
+
+    // 展開対象の部材（完成品）
+    ItemMaster targetItem = itemMasterMapper.getItemMasterById(targetId);
+    // 結果Bomリスト
+    List<BomViewDto> resBom = new ArrayList<BomViewDto>();
+    // 再帰展開処理
+    this.recursiveExpandRequirements(targetId, orderQty, START_LEVEL, resBom, isNet);
+
+    BomExpansionResult result = new BomExpansionResult();
+    
+    // 結果情報
+    result.setParentItem(targetItem);
+    result.setBomList(resBom);
+    result.setOrderQty(orderQty);
+    
+    return result;
+  }
+
+  /**
+   * 再帰展開必要数量取得処理
+   * @param pId 部品ID
+   * @param pQty
+   * @param lv
+   * @param resList
+   */
+  private void recursiveExpandRequirements(String targetId, BigDecimal orderQty, int lv,
+      List<BomViewDto> resList, boolean isNet) {
+
+    // BomMasterとItemMasterの取得
+    List<BomEntity> bomList = fullBomExpansionMapper.getFullBomExpansion(targetId);
+
+    bomList.stream().forEach(bomEntity -> {
+      
+      BomViewDto bomViewDto = this.convertToViewDto(lv, bomEntity, orderQty); 
+      // 結果リストへ追加
+      resList.add(bomViewDto);
+      
+      if(isNet) {
+        // 純展開(net)再帰呼出
+        if(bomViewDto.getCalcShortageQty().signum() > 0) {
+          this.recursiveExpandRequirements(bomViewDto.getItemId(), bomViewDto.getCalcShortageQty(),lv + 1, resList, isNet);
+        }
+      } else {
+        // 総展開(gross)再帰呼出
+        this.recursiveExpandRequirements(bomViewDto.getItemId(), bomViewDto.getCalcTotalRequired(),lv + 1, resList, isNet);
+      }
+
+    });
+  }
+  /**
+   * Bom情報をEntityからViewへ変換設定する
+   * @param lv
+   * @param entity
+   * @param parentOrderQty
+   * @return
+   */
+  private BomViewDto convertToViewDto(int lv, BomEntity entity, BigDecimal parentOrderQty) {
+    
+    BomViewDto view = new BomViewDto();
+    
+    // 基本項目のコピー
+    view.setLevel(lv);
+    view.setItemId(entity.getItemId());
+    view.setItemName(entity.getItemName());
+    view.setUnit(entity.getUnit());
+    // 構成数（親１個あたり）
+    view.setCalcQuantity(entity.getQuantity());
+    view.setQuantityDisp(entity.getQuantity().toPlainString());
+    
+    // 総必要数 製造指示数 * 構成数
+    BigDecimal totalRequired = parentOrderQty.multiply(entity.getQuantity());
+    view.setTotalRequiredDisp(totalRequired.stripTrailingZeros().toPlainString());
+    view.setCalcTotalRequired(totalRequired);
+    
+    if(Objects.isNull(entity.getStockQuantity())) {
+      // --- 在庫設定なし ---
+      
+      // 在庫数
+      view.setStockQtyDisp(EMP_STR);
+      view.setCalcStockQty(BigDecimal.ZERO);
+      // 不良在庫数
+      view.setDefectiveQtyDisp(EMP_STR);
+      view.setCalcDefectiveQty(BigDecimal.ZERO);
+      // 保留
+      view.setHoldQtyDisp(EMP_STR);
+      view.setCalcHoldQty(BigDecimal.ZERO);
+      // 有効在庫
+      view.setAvailableQtyDisp(EMP_STR);
+      view.setCalcAvailableQty(BigDecimal.ZERO);
+      
+    } else {
+      // --- 在庫設定あり ---
+
+      // 実在庫（倉庫にある現物総数）
+      BigDecimal stock = entity.getStockQuantity();
+      // 不良在庫数
+      BigDecimal defective = Optional.ofNullable(entity.getDefectiveQuantity()).orElse(BigDecimal.ZERO);
+      // 保留在庫数（手がかり）
+      BigDecimal hold = Optional.ofNullable(entity.getHoldQuantity()).orElse(BigDecimal.ZERO);
+      // 有効在庫 = 実在個数 - 不良在庫数 - 保留在庫数
+      BigDecimal availableQuantity = stock.subtract(defective).subtract(hold);
+
+      // 在庫数
+      view.setStockQtyDisp(stock.stripTrailingZeros().toPlainString());
+      view.setCalcStockQty(stock);
+      // 不良在庫数
+      view.setDefectiveQtyDisp(defective.stripTrailingZeros().toPlainString());
+      view.setCalcDefectiveQty(defective);
+      // 保留
+      view.setHoldQtyDisp(hold.stripTrailingZeros().toPlainString());
+      view.setCalcHoldQty(hold);
+      
+      view.setAvailableQtyDisp(availableQuantity.stripTrailingZeros().toPlainString());  
+      view.setCalcAvailableQty(availableQuantity); 
+      
+    }
+    
+    // 不足の算出
+    BigDecimal shortageQuantity = view.getCalcTotalRequired().subtract(view.getCalcAvailableQty());
+    shortageQuantity = (shortageQuantity.signum() > 0) ? shortageQuantity : BigDecimal.ZERO;
+    
+    view.setCalcShortageQty(shortageQuantity);
+    view.setShortageQtyDisp(shortageQuantity.stripTrailingZeros().toPlainString());
+    
+    return view;
+    
+  }
+
+}
+ 
+===== C:\pleiades\2023-12\pleiades-2023-12-java-win-64bit-jre_20240218\workspace_margerquest\ProductionManagement\src\main\resources\mapper\FullBomExpansionMapper.xml ===== 
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.production.management.mapper.FullBomExpansionMapper">
+<select id="getFullBomExpansion" resultType="com.production.management.entity.BomEntity">
+SELECT
+ imm.item_id as itemId,
+ imm.item_name as itemName,
+ bmm.quantity,
+ imm.unit,
+ skm.stock_quantity as stockQuantity,
+ skm.defective_quantity as defectiveQuantity,
+ skm.hold_quantity as holdQuantity
+FROM
+ bom_master bmm INNER JOIN item_master imm 
+ON 
+ bmm.child_id = imm.item_id 
+LEFT JOIN stock_master skm
+ON
+ imm.item_id = skm.item_id
+WHERE
+ bmm.parent_id = #{itemId}
+</select>
+</mapper> 
+===== C:\pleiades\2023-12\pleiades-2023-12-java-win-64bit-jre_20240218\workspace_margerquest\ProductionManagement\src\main\resources\mapper\ItemMasterMapper.xml ===== 
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.production.management.mapper.ItemMasterMapper">
+<select id="getItemMasterById" resultType="com.production.management.entity.ItemMasterEntity">
+SELECT
+ itemMaster.item_id as itemId,
+ itemMaster.item_name as itemName,
+ itemMaster.item_type as itemType,
+ itemMaster.unit
+FROM
+ item_master itemMaster
+WHERE
+ itemMaster.item_id = #{itemId}
+</select>
+</mapper> 
+===== C:\pleiades\2023-12\pleiades-2023-12-java-win-64bit-jre_20240218\workspace_margerquest\ProductionManagement\src\test\java\com\example\demo\ProductionManagementApplicationTests.java ===== 
+package com.example.demo;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest
+class ProductionManagementApplicationTests {
+
+	@Test
+	void contextLoads() {
+	}
+
+}

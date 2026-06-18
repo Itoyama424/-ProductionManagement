@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <meta charset="UTF-8">
+    <title>BOM全展開確認 | Phase 1</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <style>
+        .system-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .system-table th, .system-table td { border: 1px solid #999; padding: 8px; text-align: left; }
+        .system-table th { background-color: #f2f2f2; }
+        /* 階層に応じたインデント */
+        .indent { display: inline-block; }
+        .bom-row:hover {
+    		background-color: #f9f9f9;
+		}
+    </style>
+</head>
+<body>
+<script>
+$(document).ready(function() {
+	$('.system-table').on('click', '.expand-btn', function() {
+		
+		const parentId = $(this).closest('.bom-row').data('item-id');
+		const calcId = $(this).closest('.bom-row').data('calc-id');
+		const parentLevel = $(this).closest('.bom-row').data('level');
+		
+		const currentRow = $(this).closest('tr');
+		
+		const params = new URLSearchParams(
+			{
+				parentId: parentId,
+				calcId: calcId,
+				parentLevel: parentLevel
+			}
+		);
+		
+		$.ajax({
+			url: '/bom/expand-child',
+			type : 'GET',
+			data : params.toString(),
+			dataType : 'html'
+		}).done((data) => {
+			currentRow.after(data);
+		});
+		
+
+	});
+	
+});
+</script>
+    <div class="main-container">
+        <h2>■ Phase 2：BOM（全展開 AND 純展開）数量計算確認</h2>
+        
+        <div style="background: #eee; padding: 10px; border: 1px solid #ccc;">
+            <strong>生産対象：</strong> <span th:text="${res.parentItem.itemName}"></span> (<span th:text="${res.parentItem.itemId}"></span>)<br>
+            <strong>製造指示数：</strong> <span th:text="${res.orderQty}"></span> <span th:text="${res.parentItem.unit}"></span>
+        </div>
+
+        <table class="system-table">
+            <thead>
+                <tr>
+                    <th>部品構成（階層）</th>
+                    <th>単位</th>
+                    <th>構成数（親1当り）</th>
+                    <th>総必要数</th>
+                    <th>在庫数</th>
+                    <th>不足数</th>
+					<th style="color: red;">不良</th>
+       				<th style="color: orange;">保留</th>
+        			<th style="background-color: #e6f3ff;">有効在庫</th>                    
+                </tr>
+            </thead>
+            <tbody>
+				<tr th:fragment="bom-row-unit"
+					th:each="child : ${res.bomList}" 
+				    class="bom-row"
+				    th:data-item-id="${child.itemId}" 
+				    th:data-calc-id="${res.calcId}"
+				    th:data-level="${child.level}">
+				    
+				    <td>
+				        <span th:style="|padding-left: ${child.level * 20}px;|">
+				            <button type="button" class="expand-btn" 
+				                    style="cursor: pointer; margin-right: 5px;">＋</button>
+				            <span th:text="${child.level == 0 ? '' : '└ '}"></span>
+				            <span th:text="${child.itemId}"></span>
+				            <span th:text="' [' + ${child.itemName} + ']'"></span>
+				        </span>
+				    </td>
+                    <td th:text="${child.unit}"></td>
+                    <td th:text="${child.quantityDisp}"></td>
+                    <td th:text="${child.totalRequiredDisp}" style="font-weight: bold; color: blue;"></td>
+					<td th:text="${child.stockQtyDisp}"></td>
+                    <td th:text="${child.shortageQtyDisp}"></td>
+					<td th:text="${child.defectiveQtyDisp}" style="color: red;"></td>
+        			<td th:text="${child.holdQtyDisp}" style="color: orange;"></td>
+        			<td th:text="${child.availableQtyDisp}"></td>                    
+                </tr>
+            </tbody>
+        </table>
+
+        <div style="margin-top: 20px;">
+            <a th:href="@{/bom/index}">← 指示入力へ戻る</a>
+        </div>
+    </div>
+</body>
+</html>
