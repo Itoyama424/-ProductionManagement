@@ -51,13 +51,12 @@
 	    bcr.available_stock AS calcAvailableQty
 	FROM 
 	    bom_calc_result bcr INNER JOIN bom_master bmm
-	    ON bcr.item_id = bmm.child_id
+	    ON bcr.item_id = bmm.parent_id
+        AND bmm.parent_id = #{parentId}
+        AND bcr.calc_id = #{calcId}
 	LEFT JOIN stock_master stm 
 	    ON bcr.item_id = stm.item_id
 	LEFT JOIN item_master itm 
 	    ON bcr.item_id = itm.item_id
-	WHERE 
-	    bmm.child_id = #{parentId}
-	    AND bcr.calc_id = #{calcId}
    </select>
 </mapper>

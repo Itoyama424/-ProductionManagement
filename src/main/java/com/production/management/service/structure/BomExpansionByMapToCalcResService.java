@@ -169,19 +169,20 @@ public class BomExpansionByMapToCalcResService {
 
         for (BomMasterEntity bomEntity : childList) {
 
-          localRecipe.merge(bomEntity.getItemId(), bomEntity.getQuantity(), BigDecimal::add);
+          localRecipe.merge(bomEntity.getItemId(), bomEntity.getQuantity(), (a, b) -> a.add(b));
 
           // 親の必要数 * 構成数
           BigDecimal totalRequired = orderQty.multiply(bomEntity.getQuantity());
           // bomEntity.getItemId()はbom_master.child_id
-          summaryMap.merge(bomEntity.getItemId(), totalRequired, BigDecimal::add);
+          summaryMap.merge(bomEntity.getItemId(), totalRequired, (a,b) -> a.add(b));
 
           if (Objects.nonNull(resList)) {
             // 結果リストへ追加
             resList.add(this.convertToViewDto(lv, bomEntity, orderQty));
           }
 
-          if(allStockMap.get(targetId).compareTo(totalRequired) < 0) {
+          BigDecimal stock = allStockMap.getOrDefault(targetId, BigDecimal.ZERO);
+          if(stock.compareTo(totalRequired) < 0) {
             // 総展開(gross)再帰呼出
             this.recursiveExpandRequirements(bomEntity.getItemId(),
                 totalRequired, lv + 1, allBomMap, currentPath, summaryMap, memoMap, allStockMap);
@@ -192,7 +193,7 @@ public class BomExpansionByMapToCalcResService {
             Map<String, BigDecimal> childRecipeMap = memoMap.get(bomEntity.getItemId());
 
             for(Map.Entry<String, BigDecimal> entry : childRecipeMap.entrySet()) {
-              localRecipe.merge(entry.getKey(), entry.getValue().multiply(bomEntity.getQuantity()), BigDecimal::add);
+              localRecipe.merge(entry.getKey(), entry.getValue().multiply(bomEntity.getQuantity()), (a, b) -> a.add(b));
             }
           }
 

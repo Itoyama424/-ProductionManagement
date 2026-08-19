@@ -61,9 +61,9 @@ public class BomCalcResultController {
   
   @GetMapping("expand-child")
   public String expandChild(
-      @RequestParam String parentId,
-      @RequestParam String calcId,
-      @RequestParam int parentLevel,
+      @RequestParam("parentId") String parentId,
+      @RequestParam("calcId") String calcId,
+      @RequestParam("parentLevel") int parentLevel,
       Model model
       ) {
     System.out.println(parentId);
