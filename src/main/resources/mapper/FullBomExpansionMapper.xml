@@ -2,40 +2,51 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.production.management.mapper.FullBomExpansionMapper">
 <select id="getFullBomExpansion" resultType="com.production.management.entity.BomEntity">
-SELECT
- imm.item_id as itemId,
- imm.item_name as itemName,
- bmm.quantity,
- imm.unit,
- skm.stock_quantity as stockQuantity,
- skm.defective_quantity as defectiveQuantity,
- skm.hold_quantity as holdQuantity
-FROM
- bom_master bmm INNER JOIN item_master imm 
-ON 
- bmm.child_id = imm.item_id 
-LEFT JOIN stock_master skm
-ON
- imm.item_id = skm.item_id
-WHERE
- bmm.parent_id = #{itemId}
+	SELECT
+	 imm.item_id as itemId,
+	 imm.item_name as itemName,
+	 bmm.quantity,
+	 imm.unit,
+	 SUM(COALESCE(sk.stock_qty,0)) as stockQuantity,
+	 SUM(COALESCE(sk.defective_qty,0)) as defectiveQuantity,
+	 SUM(COALESCE(sk.hold_qty,0)) as holdQuantity
+	FROM
+	 bom_master bmm INNER JOIN item_master imm 
+	ON 
+	 bmm.child_id = imm.item_id 
+	LEFT JOIN stock sk
+	ON
+	 imm.item_id = sk.item_id
+	WHERE
+	 bmm.parent_id = #{itemId}
+	GROUP BY
+	 imm.item_id,
+	 imm.item_name,
+	 bmm.quantity,
+	 imm.unit
 </select>
 <select id="getAllBomList" resultType="com.production.management.entity.BomEntity">
-SELECT
- bmm.parent_id as parentId,
- imm.item_id as itemId,
- imm.item_name as itemName,
- bmm.quantity,
- imm.unit,
- skm.stock_quantity as stockQuantity,
- skm.defective_quantity as defectiveQuantity,
- skm.hold_quantity as holdQuantity
-FROM
- bom_master bmm INNER JOIN item_master imm 
-ON 
- bmm.child_id = imm.item_id 
-LEFT JOIN stock_master skm
-ON
- imm.item_id = skm.item_id
+	SELECT
+	 bmm.parent_id as parentId,
+	 imm.item_id as itemId,
+	 imm.item_name as itemName,
+	 bmm.quantity,
+	 imm.unit,
+	 SUM(COALESCE(sk.stock_qty,0)) as stockQuantity,
+	 SUM(COALESCE(sk.defective_qty,0)) as defectiveQuantity,
+	 SUM(COALESCE(sk.hold_qty,0)) as holdQuantity
+	FROM
+	 bom_master bmm INNER JOIN item_master imm 
+	ON 
+	 bmm.child_id = imm.item_id 
+	LEFT JOIN stock sk
+	ON
+	 imm.item_id = sk.item_id
+	GROUP BY
+	 bmm.parent_id,
+	 imm.item_id,
+	 imm.item_name,
+	 bmm.quantity,
+	 imm.unit
 </select>
 </mapper>

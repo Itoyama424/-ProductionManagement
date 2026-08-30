@@ -4,7 +4,7 @@ import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import com.production.management.dto.AvailableStockMasgerDto;
-import com.production.management.entity.StockMasterEntity;
+import com.production.management.entity.StockEntity;
 
 @Mapper
 public interface StockMasterMapper {
@@ -13,7 +13,7 @@ public interface StockMasterMapper {
      * * @param itemId 品目ID
      * @return 在庫情報（存在しない場合はnull）
      */
-    StockMasterEntity getStockByItemId(@Param("itemId") String itemId);
+    StockEntity getStockByItemId(@Param("itemId") String itemId);
     
     /**
      * 全部の在庫の有効在庫を取得する
