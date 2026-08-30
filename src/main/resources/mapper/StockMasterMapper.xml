@@ -9,8 +9,28 @@
         <result property="defectiveQuantity" column="defective_quantity" />
         <result property="holdQuantity" column="hold_quantity" />
     </resultMap>
+	<select id="getStockByItemId" resultType="com.production.management.entity.StockEntity">
+	    SELECT
+	        item_id,
+	        SUM(stock_qty) AS stock_qty,
+	        SUM(defective_qty) AS defective_qty,
+	        SUM(hold_qty) AS hold_qty,
+	        SUM(allocated_qty) AS allocated_qty,
+	        SUM(available_qty) AS available_qty
+	    FROM stock
+	    WHERE item_id = #{itemId}
+	    GROUP BY item_id
+	</select>
+	<select id="getAllStockMaster" resultType="com.production.management.dto.AvailableStockMasgerDto">
+        SELECT
+            item_id, 
+            SUM(COALESCE(stock_qty, 0)) - SUM(COALESCE(defective_qty, 0)) - SUM(COALESCE(hold_qty, 0)) - SUM(COALESCE(allocated_qty, 0)) AS AvailableQty
+        FROM
+            public.stock
+        GROUP BY item_id;
+    </select>
 
-    <select id="getStockByItemId" resultMap="StockMasterMap">
+<!--     <select id="getStockByItemId" resultMap="StockMasterMap">
         SELECT
             item_id,
             stock_quantity,
@@ -20,13 +40,13 @@
             public.stock_master
         WHERE
             item_id = #{itemId}
-    </select>
-    <select id="getAllStockMaster" resultType="com.production.management.dto.AvailableStockMasgerDto">
+    </select> -->
+<!--     <select id="getAllStockMaster" resultType="com.production.management.dto.AvailableStockMasgerDto">
         SELECT
             item_id, 
             COALESCE(stock_quantity, 0) - COALESCE(defective_quantity, 0) - COALESCE(hold_quantity, 0) AS AvailableQty
         FROM
             public.stock_master
-    </select>
+    </select> -->
 
 </mapper>

@@ -19,7 +19,7 @@ import com.production.management.dto.BomViewDto;
 import com.production.management.entity.BomCalcResultEntity;
 import com.production.management.entity.BomMasterEntity;
 import com.production.management.entity.ItemMasterEntity;
-import com.production.management.entity.StockMasterEntity;
+import com.production.management.entity.StockEntity;
 import com.production.management.exception.CircularReferenceException;
 import com.production.management.mapper.BomCalcResultMapper;
 import com.production.management.mapper.BomMasterMapper;
@@ -52,8 +52,9 @@ public class BomExpansionByMapToCalcResService {
   private static final int START_LEVEL = 1;
   private static final String EMP_STR = "未設定";
 
+  // (0) → (1) → (2)
   /**
-   * 必要数計算処理
+   * 必要数計算処理(0)
    * 
    * @param targetId
    * @param orderQty
@@ -87,6 +88,7 @@ public class BomExpansionByMapToCalcResService {
 
     // item_idごとの総必要数をbom_calc_resultに登録する 
     String uuid = UUID.randomUUID().toString();
+    this.deleteCalcResult();
     this.insertBomCalcResult(summaryMap, targetId, uuid);
 
     // 結果情報
@@ -102,7 +104,7 @@ public class BomExpansionByMapToCalcResService {
   }
 
   /**
-   * 再帰展開必要数量取得処理
+   * 再帰展開必要数量取得処理(2)
    * @param targetId
    * @param orderQty
    * @param lv
@@ -123,7 +125,7 @@ public class BomExpansionByMapToCalcResService {
     this.recursiveExpandRequirements(targetId, orderQty, lv, allBomMap, null, currentPath, summaryMap, memoMap, allStockMap);
   }
   /**
-   * 再帰展開必要数量取得処理
+   * 再帰展開必要数量取得処理(1)
    * @param targetId            親のitem_id
    * @param orderQty            注文数
    * @param lv                  階層 
@@ -181,11 +183,13 @@ public class BomExpansionByMapToCalcResService {
             resList.add(this.convertToViewDto(lv, bomEntity, orderQty));
           }
 
-          BigDecimal stock = allStockMap.getOrDefault(targetId, BigDecimal.ZERO);
-          if(stock.compareTo(totalRequired) < 0) {
-            // 総展開(gross)再帰呼出
-            this.recursiveExpandRequirements(bomEntity.getItemId(),
-                totalRequired, lv + 1, allBomMap, currentPath, summaryMap, memoMap, allStockMap);
+          BigDecimal stock = allStockMap.getOrDefault(bomEntity.getItemId(), BigDecimal.ZERO);
+          BigDecimal required = summaryMap.get(bomEntity.getItemId());
+          if(stock.compareTo(required) < 0) {
+            BigDecimal shortage = required.subtract(stock); 
+            // 数量計算
+            this.recursiveExpandRequirements(bomEntity.getItemId(), shortage, lv + 1, allBomMap,
+                currentPath, summaryMap, memoMap, allStockMap);
           }
           
           if(memoMap.containsKey(bomEntity.getItemId())) {
@@ -198,7 +202,6 @@ public class BomExpansionByMapToCalcResService {
           }
 
         };
-
         memoMap.put(targetId, localRecipe);
       }
 
@@ -248,7 +251,7 @@ public class BomExpansionByMapToCalcResService {
     // 部品情報の取得
     ItemMasterEntity itemEntity = itemMasterMapper.getItemMasterById(bomEntity.getItemId());
     // 在庫情報の取得
-    StockMasterEntity stockEntity = stockMasterMapper.getStockByItemId(bomEntity.getItemId());
+    StockEntity stockEntity = stockMasterMapper.getStockByItemId(bomEntity.getItemId());
 
     BomViewDto view = new BomViewDto();
 
@@ -286,12 +289,12 @@ public class BomExpansionByMapToCalcResService {
       // --- 在庫設定あり ---
 
       // 実在庫（倉庫にある現物総数）
-      BigDecimal stock = stockEntity.getStockQuantity();
+      BigDecimal stock = stockEntity.getStockQty();
       // 不良在庫数
       BigDecimal defective =
-          Optional.ofNullable(stockEntity.getDefectiveQuantity()).orElse(BigDecimal.ZERO);
+          Optional.ofNullable(stockEntity.getDefectiveQty()).orElse(BigDecimal.ZERO);
       // 保留在庫数（手がかり）
-      BigDecimal hold = Optional.ofNullable(stockEntity.getHoldQuantity()).orElse(BigDecimal.ZERO);
+      BigDecimal hold = Optional.ofNullable(stockEntity.getHoldQty()).orElse(BigDecimal.ZERO);
       // 有効在庫 = 実在個数 - 不良在庫数 - 保留在庫数
       BigDecimal availableQuantity = stock.subtract(defective).subtract(hold);
 
@@ -321,6 +324,12 @@ public class BomExpansionByMapToCalcResService {
 
   }
   /**
+   * BomCalcResult 削除
+   */
+  private void deleteCalcResult() {
+    bomCalcResultMapper.deleteCalcResult();
+  }
+  /**
    * BomCalcResult 登録
    * @param summaryMap
    */
@@ -339,19 +348,19 @@ public class BomExpansionByMapToCalcResService {
       bomCalcEntity.setGrossQty(totaclQuantity);
 
       // 在庫情報の取得
-      StockMasterEntity stockEntity = stockMasterMapper.getStockByItemId(itemId);
+      StockEntity stockEntity = stockMasterMapper.getStockByItemId(itemId);
 
       bomCalcEntity.setCalcId(uuid);
 
       if(Objects.nonNull(stockEntity)) {
         // -- 有効在庫 --
         // 実在庫（倉庫にある現物総数）
-        BigDecimal stock = stockEntity.getStockQuantity();
+        BigDecimal stock = stockEntity.getStockQty();
         // 不良在庫数
         BigDecimal defective =
-            Optional.ofNullable(stockEntity.getDefectiveQuantity()).orElse(BigDecimal.ZERO);
+            Optional.ofNullable(stockEntity.getDefectiveQty()).orElse(BigDecimal.ZERO);
         // 保留在庫数（手がかり）
-        BigDecimal hold = Optional.ofNullable(stockEntity.getHoldQuantity()).orElse(BigDecimal.ZERO);
+        BigDecimal hold = Optional.ofNullable(stockEntity.getHoldQty()).orElse(BigDecimal.ZERO);
         // 有効在庫 = 実在個数 - 不良在庫数 - 保留在庫数
         BigDecimal availableQuantity = stock.subtract(defective).subtract(hold);
 

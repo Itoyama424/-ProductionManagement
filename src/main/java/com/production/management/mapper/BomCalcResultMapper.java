@@ -12,4 +12,6 @@ public interface BomCalcResultMapper {
   void bomCalcResInsert(@Param("bomCalcList") List<BomCalcResultEntity> bomCalcList);
   
   List<BomViewDto> getBomCalcResult(@Param("parentId") String parentId, @Param("calcId") String calcId);
+  
+  void deleteCalcResult();
 }

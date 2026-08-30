@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.production.management.mapper.StockMapper">
+<select id="getStockByItemId" resultType="com.production.management.entity.StockEntity">
+    SELECT
+        item_id,
+        SUM(stock_qty) AS stock_qty,
+        SUM(defective_qty) AS defective_qty,
+        SUM(hold_qty) AS hold_qty,
+        SUM(allocated_qty) AS allocated_qty,
+        SUM(available_qty) AS available_qty
+    FROM stock
+    WHERE item_id = #{itemId}
+    GROUP BY item_id
+</select>
+</mapper>

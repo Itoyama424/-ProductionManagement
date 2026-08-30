@@ -17,7 +17,7 @@ import com.production.management.dto.BomViewDto;
 import com.production.management.entity.BomCalcResultEntity;
 import com.production.management.entity.BomMasterEntity;
 import com.production.management.entity.ItemMasterEntity;
-import com.production.management.entity.StockMasterEntity;
+import com.production.management.entity.StockEntity;
 import com.production.management.mapper.BomCalcResultMapper;
 import com.production.management.mapper.BomMasterMapper;
 import com.production.management.mapper.ItemMasterMapper;
@@ -203,7 +203,7 @@ public class BomExpansionByMapLowLevelCodeService {
     // 部品情報の取得
     ItemMasterEntity itemEntity = itemMasterMapper.getItemMasterById(bomEntity.getItemId());
     // 在庫情報の取得
-    StockMasterEntity stockEntity = stockMasterMapper.getStockByItemId(bomEntity.getItemId());
+    StockEntity stockEntity = stockMasterMapper.getStockByItemId(bomEntity.getItemId());
 
     BomViewDto view = new BomViewDto();
 
@@ -241,12 +241,12 @@ public class BomExpansionByMapLowLevelCodeService {
       // --- 在庫設定あり ---
 
       // 実在庫（倉庫にある現物総数）
-      BigDecimal stock = stockEntity.getStockQuantity();
+      BigDecimal stock = stockEntity.getStockQty();
       // 不良在庫数
       BigDecimal defective =
-          Optional.ofNullable(stockEntity.getDefectiveQuantity()).orElse(BigDecimal.ZERO);
+          Optional.ofNullable(stockEntity.getDefectiveQty()).orElse(BigDecimal.ZERO);
       // 保留在庫数（手がかり）
-      BigDecimal hold = Optional.ofNullable(stockEntity.getHoldQuantity()).orElse(BigDecimal.ZERO);
+      BigDecimal hold = Optional.ofNullable(stockEntity.getHoldQty()).orElse(BigDecimal.ZERO);
       // 有効在庫 = 実在個数 - 不良在庫数 - 保留在庫数
       BigDecimal availableQuantity = stock.subtract(defective).subtract(hold);
 
@@ -294,19 +294,19 @@ public class BomExpansionByMapLowLevelCodeService {
       bomCalcEntity.setGrossQty(totaclQuantity);
 
       // 在庫情報の取得
-      StockMasterEntity stockEntity = stockMasterMapper.getStockByItemId(itemId);
+      StockEntity stockEntity = stockMasterMapper.getStockByItemId(itemId);
 
       bomCalcEntity.setCalcId(uuid);
 
       if(Objects.nonNull(stockEntity)) {
         // -- 有効在庫 --
         // 実在庫（倉庫にある現物総数）
-        BigDecimal stock = stockEntity.getStockQuantity();
+        BigDecimal stock = stockEntity.getStockQty();
         // 不良在庫数
         BigDecimal defective =
-            Optional.ofNullable(stockEntity.getDefectiveQuantity()).orElse(BigDecimal.ZERO);
+            Optional.ofNullable(stockEntity.getDefectiveQty()).orElse(BigDecimal.ZERO);
         // 保留在庫数（手がかり）
-        BigDecimal hold = Optional.ofNullable(stockEntity.getHoldQuantity()).orElse(BigDecimal.ZERO);
+        BigDecimal hold = Optional.ofNullable(stockEntity.getHoldQty()).orElse(BigDecimal.ZERO);
         // 有効在庫 = 実在個数 - 不良在庫数 - 保留在庫数
         BigDecimal availableQuantity = stock.subtract(defective).subtract(hold);
 
